@@ -5,16 +5,17 @@
 `include "DW01_mux_any.v"
 //synopsys translate_on
 
-`define ADDR_W 4
-`define MEM_W (1 << ADDR_W)
+`define ADDR_W 5
+`define MEM_W (1 << `ADDR_W)
 
-`define BASE 9  //  bit base for decoding RF
-`define BASE_M (`ADDR_W*3+`BASE+1)    // bit base for decoding M
+`define BASE_R 9  //  bit base for decoding RF
+`define END_R (`ADDR_W*3+`BASE_R-1)
+`define BASE_M (`END_R+2)    // bit base for decoding M
 `define END_M (`BASE_M + `ADDR_W*3)
 
 module Scalar(clk, inst, data_in, acc);
 input clk;
-input [37:0] inst;
+input [`END_M+3:0] inst;
 input [31:0] data_in;
 output [15:0] acc;
 
@@ -28,7 +29,7 @@ wire co;
 
 //assign M_out = mult_temp_out[30:15];
 
-Register_File_2R1W u_RF( .clk(clk), .addr_r1(inst[`ADDR_W*2+`BASE-1:`ADDR_W+`BASE]), .addr_r2(inst[`ADDR_W+`BASE-1:`BASE]), .wen_w(inst[`ADDR_W*3+`BASE]), .addr_w(inst[`ADDR_W*3+`BASE-1:`ADDR_W*2+`BASE]), .data_w(data_write), .rf_data_r1(RF_read_1), .rf_data_r2(RF_read_2), .DM_addr_w1(inst[`ADDR_W*3+`BASE_M-1:`BASE_M+`ADDR_W*2]), .DM_addr_w2(inst[`BASE_M+`ADDR_W*2-1:`ADDR_W+`BASE_M]), .DM_data(data_in), .DM_wen_1(inst[`END_M+1]), .DM_wen_2(inst[`END_M]), .DM_addr_r(inst[`ADDR_W+`BASE_M-1:`BASE_M]), .acc(acc) );       
+Register_File_2R1W u_RF( .clk(clk), .addr_r1(inst[`ADDR_W*1+`BASE_R-1:`ADDR_W*0+`BASE_R]), .addr_r2(inst[`ADDR_W*2+`BASE_R-1:`ADDR_W*1+`BASE_R]), .wen_w(inst[`END_R+1]), .addr_w(inst[`ADDR_W*3+`BASE_R-1:`ADDR_W*2+`BASE_R]), .data_w(data_write), .rf_data_r1(RF_read_1), .rf_data_r2(RF_read_2), .DM_addr_w1(inst[`ADDR_W*1+`BASE_M-1:`BASE_M+`ADDR_W*0]), .DM_addr_w2(inst[`ADDR_W*2+`BASE_M-1:`BASE_M+`ADDR_W*1]), .DM_data(data_in), .DM_wen_1(inst[`END_M+1]), .DM_wen_2(inst[`END_M]), .DM_addr_r(inst[`ADDR_W*3+`BASE_M-1:`BASE_M+`ADDR_W*2]), .acc(acc) );       
 
 demux_2to3 u_demun2to3( .in(RF_read_1), .sel(inst[4:3]), .y0(M_in_1), .y1(A_in_1), .y2(S_in) );
 demux_1to2 u_demux1to2( .in(RF_read_2), .sel(inst[2]), .y0(M_in_2), .y1(A_in_2) );
@@ -48,17 +49,17 @@ endmodule
 
 module Register_File_2R1W(clk, addr_r1, addr_r2, wen_w, addr_w, data_w, rf_data_r1, rf_data_r2, DM_addr_w1, DM_addr_w2, DM_data, DM_wen_1, DM_wen_2, DM_addr_r, acc);                                                       
 input		clk		;                                              		
-input	[3:0]	addr_r1		;                                              
-input	[3:0]	addr_r2		;				                                               
+input	[`ADDR_W-1:0]	addr_r1		;                                              
+input	[`ADDR_W-1:0]	addr_r2		;				                                               
 input		wen_w		;                                              
-input	[3:0]	addr_w		;                                              
+input	[`ADDR_W-1:0]	addr_w		;                                              
 input	[15:0]	data_w		;  	
-input   [3:0]   DM_addr_w1;
-input   [3:0]   DM_addr_w2;
+input   [`ADDR_W-1:0]   DM_addr_w1;
+input   [`ADDR_W-1:0]   DM_addr_w2;
 input   [31:0]  DM_data;
 input			DM_wen_1;
 input			DM_wen_2;
-input	[3:0]	DM_addr_r;
+input	[`ADDR_W-1:0]	DM_addr_r;
 	// output
 output	[15:0]	rf_data_r1	;	                                       
 output	[15:0]	rf_data_r2	;
@@ -66,7 +67,7 @@ output	[15:0]	acc;
 //=====================================================================
 //   WIRE AND REG DECLARATION                                          
 //=====================================================================	 
-reg [15:0]  register_file [0:15];
+reg [15:0]  register_file [0:`MEM_W];
 //=====================================================================
 //   DESIGN                                                            
 //=====================================================================

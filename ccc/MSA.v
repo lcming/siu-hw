@@ -10,7 +10,7 @@
 `define BASE_R 4  //  bit base for decoding RF
 `define END_R (`ADDR_W*4+`BASE_R-1)
 `define BASE_M (`END_R+2)    // bit base for decoding M
-`define END_M (`BASE_M + `ADDR_W*4)
+`define END_M (`BASE_M + `ADDR_W*4-1)
 
 
 
@@ -27,6 +27,8 @@ wire [15:0] A_out, S_out;
 
 wire co;
 
+initial
+    $display("%d", `END_M);
 //assign M_out = mult_temp_out[30:15];
 
 Register_File_3R1W u_RF( .clk(clk), .addr_r1(inst[`ADDR_W*1+`BASE_R-1:`ADDR_W*0+`BASE_R]), .addr_r2(inst[`ADDR_W*2+`BASE_R-1:`ADDR_W*1+`BASE_R]), .addr_r3(inst[`ADDR_W*3+`BASE_R-1:`ADDR_W*2+`BASE_R]), .wen_w(inst[`END_R+1]), .addr_w(inst[`ADDR_W*4+`BASE_R-1:`ADDR_W*3+`BASE_R]), .data_w(A_out), .rf_data_r1(M_in_1), .rf_data_r2(M_in_2), .rf_data_r3(A_in), .DM_addr_w1(inst[`ADDR_W*1+`BASE_M-1:`ADDR_W*0+`BASE_M]), .DM_addr_w2(inst[`ADDR_W*2+`BASE_M-1:`ADDR_W*1+`BASE_M]), .DM_addr_w3(inst[`ADDR_W*3+`BASE_M-1:`ADDR_W*2+`BASE_M]), .DM_data(data_in), .DM_wen1(inst[`END_M+3]), .DM_wen2(inst[`END_M+2]), .DM_wen3(inst[`END_M+1]), .DM_addr_r(inst[`ADDR_W*4+`BASE_M-1:`ADDR_W*3+`BASE_M]), .acc(acc) );       
@@ -63,7 +65,7 @@ output	[15:0]	acc;
 //=====================================================================
 //   WIRE AND REG DECLARATION                                          
 //=====================================================================	 
-reg [15:0]  register_file [0:15];
+reg [15:0]  register_file [0:`MEM_W-1];
 //=====================================================================
 //   DESIGN                                                            
 //=====================================================================

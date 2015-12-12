@@ -5,7 +5,7 @@
 `include "DW01_mux_any.v"
 //synopsys translate_on
 
-`define ADDR_W 5
+`define ADDR_W 4
 `define MEM_W (1 << `ADDR_W)
 
 `define BASE_R 9  //  bit base for decoding RF
@@ -13,21 +13,24 @@
 `define BASE_M (`END_R+2)    // bit base for decoding M
 `define END_M (`BASE_M + `ADDR_W*3)
 
-module Scalar(clk, inst, data_in, acc);
+module Scalar(clk, inst, data_in, acc, overflow);
 input clk;
 input [`END_M+3:0] inst;
 input [31:0] data_in;
 output [15:0] acc;
+output overflow;
 
 wire [15:0] RF_read_1, RF_read_2;
 wire [15:0] M_in_1, M_in_2, A_in_1, A_in_2, S_in;
 wire [31:0] M_out;
 wire [15:0] A_out, S_out;
 wire [15:0] data_write;
+wire        tie_low;
 
-wire co;
+assign tie_low = 1'b0;
 
 //assign M_out = mult_temp_out[30:15];
+
 
 Register_File_2R1W u_RF( .clk(clk), .addr_r1(inst[`ADDR_W*1+`BASE_R-1:`ADDR_W*0+`BASE_R]), .addr_r2(inst[`ADDR_W*2+`BASE_R-1:`ADDR_W*1+`BASE_R]), .wen_w(inst[`END_R+1]), .addr_w(inst[`ADDR_W*3+`BASE_R-1:`ADDR_W*2+`BASE_R]), .data_w(data_write), .rf_data_r1(RF_read_1), .rf_data_r2(RF_read_2), .DM_addr_w1(inst[`ADDR_W*1+`BASE_M-1:`BASE_M+`ADDR_W*0]), .DM_addr_w2(inst[`ADDR_W*2+`BASE_M-1:`BASE_M+`ADDR_W*1]), .DM_data(data_in), .DM_wen_1(inst[`END_M+1]), .DM_wen_2(inst[`END_M]), .DM_addr_r(inst[`ADDR_W*3+`BASE_M-1:`BASE_M+`ADDR_W*2]), .acc(acc) );       
 
@@ -35,11 +38,11 @@ demux_2to3 u_demun2to3( .in(RF_read_1), .sel(inst[4:3]), .y0(M_in_1), .y1(A_in_1
 demux_1to2 u_demux1to2( .in(RF_read_2), .sel(inst[2]), .y0(M_in_2), .y1(A_in_2) );
 
 DW02_mult #(16, 16) u_mult( .A(M_in_1), .B(M_in_2), .TC(inst[`END_M+3]), .PRODUCT(M_out) );
-DW01_addsub #(16) u_addsub( .A(A_in_1), .B(A_in_2), .CI(1'b0), .ADD_SUB(inst[`END_M+2]), .SUM(A_out), .CO(co) );
+DW01_addsub #(16) u_addsub( .A(A_in_1), .B(A_in_2), .CI(tie_low), .ADD_SUB(inst[`END_M+2]), .SUM(A_out), .CO(overflow) );
 //DW01_ash #(16, 4) u_ash( .A(S_in), .DATA_TC(1'b1), .SH(inst[8:5]), .SH_TC(1'b1), .B(S_out) );
 sh u_sh( .in(S_in), .sel(inst[8:5]), .out(S_out) );
 
-DW01_mux_any #(64, 2, 16) u_mux_3( .A({16'h0000, S_out, A_out, M_out[30:15]}), .SEL(inst[1:0]), .MUX(data_write) );
+DW01_mux_any #(64, 2, 16) u_mux_3( .A({16'h0000, S_out, A_out, M_out[31:16]}), .SEL(inst[1:0]), .MUX(data_write) );
 //mux_3to1 u_mux3to1( .in0(M_out[30:15]), .in1(A_out), .in2(S_out), .sel(inst[1:0]), .y(data_write) );
 
 endmodule
@@ -67,7 +70,7 @@ output	[15:0]	acc;
 //=====================================================================
 //   WIRE AND REG DECLARATION                                          
 //=====================================================================	 
-reg [15:0]  register_file [0:`MEM_W];
+reg [15:0]  register_file [0:`MEM_W-1];
 //=====================================================================
 //   DESIGN                                                            
 //=====================================================================
